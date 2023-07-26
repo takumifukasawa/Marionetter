@@ -60,10 +60,13 @@
     let animationMixer = null;
     let animationAction = null;
     let beforeTime = -Infinity;
+    let width, height;
+    let jsonData = null;
 
     let currentTime = 0;
 
     const port = 8080;
+    const animationFPS = 30;
 
     const url = `ws://localhost:${port}`;
     const socket = new WebSocket(url);
@@ -101,7 +104,6 @@
                 currentTime = json.currentTime;
                 if (animationAction) {
                     animationAction.paused = false;
-                    const animationFPS = 30;
                     const t = currentTime / animationFPS;
                     // animationMixer.setTime();
                     animationAction.time = t;
@@ -115,11 +117,7 @@
                 throw new Error("invalid message type");
         }
     });
-
-    let width, height;
-    let jsonData = null;
-    let playableDirector;
-
+    
     const wrapperElem = document.getElementById("js-wrapper");
     const canvasElem = document.getElementById("js-canvas");
 

@@ -267,12 +267,19 @@
 	],
 	"materials": [
 		{
-			"name": "BasicShapeMaterial",
+			"name": "MI_Cube",
 			"pbrMetallicRoughness":
 			{
-				"baseColorFactor": [ 0.899999976, 0.899999976, 0.899999976, 1 ],
-				"metallicFactor": 0,
-				"roughnessFactor": 0.640699983
+				"baseColorFactor": [ 1, 0, 0.0624359995, 1 ],
+				"metallicFactor": 0
+			}
+		},
+		{
+			"name": "MI_Floor",
+			"pbrMetallicRoughness":
+			{
+				"baseColorFactor": [ 1, 0.139064997, 0, 1 ],
+				"metallicFactor": 0
 			}
 		}
 	],
@@ -307,7 +314,7 @@
 						"TEXCOORD_1": 15
 					},
 					"indices": 10,
-					"material": 0
+					"material": 1
 				}
 			]
 		}
@@ -333,8 +340,7 @@
 		},
 		{
 			"name": "Cube",
-			"translation": [ 0, 0.579066992, 0 ],
-			"rotation": [ -0, -0.127069861, 0, 0.991893888 ],
+			"translation": [ 0, 0.5, 0 ],
 			"mesh": 0
 		},
 		{
