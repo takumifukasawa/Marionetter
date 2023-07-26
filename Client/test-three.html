@@ -1,0 +1,218 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+          name="viewport">
+    <meta content="ie=edge" http-equiv="X-UA-Compatible">
+    <title>Document</title>
+    <style>
+        .wrapper {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        canvas {
+            display: block;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="js-wrapper" class="wrapper">
+    <canvas id="js-canvas"></canvas>
+</div>
+
+<script async src="https://unpkg.com/es-module-shims@1.5.8/dist/es-module-shims.js"></script>
+<script type="importmap">
+   {
+       "imports": {
+           "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+           "OrbitControls": "https://unpkg.com/three@0.154.0/examples/jsm/controls/OrbitControls.js",
+           "GLTFLoader": "https://unpkg.com/three@0.154.0/examples/jsm/loaders/GLTFLoader.js"
+       }
+   }
+
+
+
+</script>
+
+<!--
+<script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://unpkg.com/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="./three.min.js"></script>
+<script src="./OrbitControls.js"></script>
+<script src="./GLTFLoader.js"></script>
+-->
+<script type="module">
+    import * as THREE from 'three';
+    import {OrbitControls} from 'https://unpkg.com/three@0.154.0/examples/jsm/controls/OrbitControls.js';
+    import {GLTFLoader} from 'https://unpkg.com/three@0.154.0/examples/jsm/loaders/GLTFLoader.js';
+
+    let gltfScene = null;
+    let animationMixer = null;
+    let animationAction = null;
+    let beforeTime = -Infinity;
+
+    let currentTime = 0;
+
+    const port = 8080;
+
+    const url = `ws://localhost:${port}`;
+    const socket = new WebSocket(url);
+
+    const tryParseJsonString = (str) => {
+        let json = null;
+        try {
+            json = JSON.parse(str);
+        } catch (e) {
+            return null;
+        }
+        return json;
+    }
+
+    socket.addEventListener("open", (event) => {
+        console.log("client: open");
+        // socket.send("message from client");
+        const authData = {
+            type: "auth",
+            clientType: "browser",
+        }
+        socket.send(JSON.stringify(authData));
+    });
+    socket.addEventListener("message", (event) => {
+        if (!event.data) {
+            return;
+        }
+        const json = tryParseJsonString(event.data);
+
+        if (!json || !json.type) {
+            return;
+        }
+        switch (json.type) {
+            case "seekTimeline":
+                currentTime = json.currentTime;
+                if (animationAction) {
+                    animationAction.paused = false;
+                    const animationFPS = 30;
+                    const t = currentTime / animationFPS;
+                    // animationMixer.setTime();
+                    animationAction.time = t;
+                    animationAction.paused = true;
+                }
+                break;
+            case "exportScene":
+                fetchScene();
+                break;
+            default:
+                throw new Error("invalid message type");
+        }
+    });
+
+    let width, height;
+    let jsonData = null;
+    let playableDirector;
+
+    const wrapperElem = document.getElementById("js-wrapper");
+    const canvasElem = document.getElementById("js-canvas");
+
+    const renderer = new THREE.WebGLRenderer({canvas: canvasElem});
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(60, 1, 1, 40);
+    camera.position.copy(new THREE.Vector3(6, 6, 12));
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+
+    const gridHelper = new THREE.GridHelper(20, 20);
+    scene.add(gridHelper);
+
+    const ambientLight = new THREE.AmbientLight();
+    ambientLight.intensity = 0.2;
+    scene.add(ambientLight);
+
+    const light = new THREE.DirectionalLight();
+    scene.add(light);
+    light.position.copy(new THREE.Vector3(1, 1, 1));
+
+    const onWindowResize = () => {
+        width = wrapperElem.offsetWidth;
+        height = wrapperElem.offsetHeight;
+
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(width, height);
+    }
+
+    const tick = (time) => {
+        if (beforeTime < 0) {
+            beforeTime = time;
+        }
+        if (!!animationMixer) {
+            animationMixer.update((time - beforeTime) / 1000)
+        }
+        controls.update();
+        renderer.render(scene, camera);
+        beforeTime = time;
+        window.requestAnimationFrame(tick);
+    }
+
+    // const findAnimations = (obj) => {
+    //     const animations = new Array();
+    //     obj.traverse(obj => {
+    //         if (obj.animations) {
+    //             console.log(obj.animations)
+    //             obj.animations.forEach(anim => animations.push(anim));
+    //         }
+    //     });
+    //     return animations;
+    // }
+
+    const fetchScene = async () => {
+        console.log("fetch scene...");
+        return new Promise(resolve => {
+            const gltfLoader = new GLTFLoader();
+            const url = (`./data/sample-level.gltf?t=${Date.now()}`);
+            gltfLoader.load(url, (gltf) => {
+                if (gltfScene) {
+                    scene.remove(gltfScene);
+                    gltfScene = null;
+                    animationMixer = null;
+                    animationAction = null;
+                }
+                gltfScene = gltf.scene;
+                scene.add(gltfScene);
+                animationMixer = new THREE.AnimationMixer(gltfScene);
+                const clip = gltf.animations[0];
+                animationAction = animationMixer.clipAction(clip);
+                animationAction.play();
+                animationAction.paused = true;
+                resolve(gltf);
+            });
+        });
+    }
+
+    const main = async () => {
+        await fetchScene();
+
+        onWindowResize();
+
+        window.addEventListener("resize", onWindowResize);
+        window.requestAnimationFrame(tick);
+    }
+
+    main();
+
+</script>
+
+</body>
+</html>
