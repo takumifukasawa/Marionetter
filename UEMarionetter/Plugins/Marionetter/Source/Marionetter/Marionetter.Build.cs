@@ -27,8 +27,7 @@ public class Marionetter : ModuleRules
 			{
 				"Core",
 				// ... add other public dependencies that you statically link with here ...
-				"WebSockets",
-				"LevelSequence"
+				"WebSockets"
 			}
 			);
 			

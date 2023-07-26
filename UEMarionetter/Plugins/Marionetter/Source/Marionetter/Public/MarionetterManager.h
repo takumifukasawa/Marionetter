@@ -4,9 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "LevelSequencePlayer.h"
-#include "LevelSequenceActor.h"
-// #include "LevelSequence.h"
 #include "MarionetterManager.generated.h"
 
 UCLASS()
@@ -17,10 +14,6 @@ class MARIONETTER_API AMarionetterManager : public AActor
 public:
 	// Sets default values for this actor's properties
 	AMarionetterManager();
-	UFUNCTION(BlueprintCallable, Category="MarionetterManager")
-	virtual float GetSequenceActorCurrentRootTime(const ALevelSequenceActor* SequenceActor);
-	UFUNCTION(BlueprintCallable, Category="MarionetterManager")
-	virtual float GetSequenceActorCurrentShotLocalTime(const ALevelSequenceActor* SequenceActor);
 
 protected:
 	// Called when the game starts or when spawned
